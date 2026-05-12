@@ -1,0 +1,2143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Domain Extractor</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-2: #818cf8;
+      --border: #334155;
+      --success: #34d399;
+      --danger: #f87171;
+      --warning: #fbbf24;
+      --input-bg: #0b1220;
+    }
+
+    [data-theme="light"] {
+      --bg: #f1f5f9;
+      --panel: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #0284c7;
+      --accent-2: #4f46e5;
+      --border: #cbd5e1;
+      --input-bg: #f8fafc;
+      --success: #059669;
+      --danger: #dc2626;
+      --warning: #d97706;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    header {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    h1 {
+      font-weight: 800;
+      font-size: 1.8rem;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .theme-toggle {
+      display: flex;
+      gap: 6px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .theme-toggle button {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+
+    .theme-toggle button.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .container { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      transition: background 0.3s, border-color 0.3s;
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      transition: border-color 0.2s, background 0.2s;
+      cursor: pointer;
+    }
+
+    .drop-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.05);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 240px;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      color: var(--text);
+      font-family: 'SF Mono', ui-monospace, monospace;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus { border-color: var(--accent); }
+
+    .options {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .options label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .options input[type="checkbox"] {
+      accent-color: var(--accent);
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    button:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+
+    .btn-success {
+      background: #064e3b;
+      color: var(--success);
+      border: 1px solid #065f46;
+    }
+
+    .btn-warning {
+      background: #451a03;
+      color: var(--warning);
+      border: 1px solid #78350f;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    .stat {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 2px;
+    }
+
+    .search-box {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--input-bg);
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .search-box:focus { border-color: var(--accent); }
+
+    .tld-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-height: 90px;
+      overflow-y: auto;
+      padding: 2px;
+    }
+
+    .tld-tag {
+      font-size: 0.78rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--input-bg);
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s;
+    }
+
+    .tld-tag:hover { border-color: var(--accent); color: var(--accent); }
+    .tld-tag.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .chart {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.8rem;
+    }
+
+    .bar-label { width: 50px; color: var(--muted); text-align: right; }
+    .bar-track { flex: 1; height: 10px; background: var(--input-bg); border-radius: 5px; overflow: hidden; }
+    .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: 5px; transition: width 0.4s ease; }
+    .bar-count { width: 30px; color: var(--text); text-align: right; font-weight: 600; }
+
+    .output-wrap { position: relative; flex: 1; display: flex; flex-direction: column; }
+
+    #output {
+      flex: 1;
+      min-height: 220px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 18px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+      font-weight: 600;
+      z-index: 100;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body data-theme="dark">
+
+  <header>
+    <h1>🔗 Domain Extractor</h1>
+    <div class="theme-toggle">
+      <button onclick="setTheme('light')" id="btn-light">Light</button>
+      <button onclick="setTheme('dark')" id="btn-dark" class="active">Dark</button>
+      <button onclick="setTheme('system')" id="btn-system">System</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- INPUT PANEL -->
+    <div class="card">
+      <h2>Input</h2>
+
+      <div class="drop-zone" id="dropZone">
+        <div>📂 Drag & drop files here or click to paste text below</div>
+        <div style="font-size:0.8rem; margin-top:6px; opacity:0.7;">Supports .txt .csv .html .json .md</div>
+      </div>
+
+      <textarea id="input" placeholder="Paste raw text here…"></textarea>
+
+      <div class="options">
+        <label><input type="checkbox" id="uniqueOnly" checked> Unique</label>
+        <label><input type="checkbox" id="sortAlpha" checked> Sort A→Z</label>
+        <label><input type="checkbox" id="lowerCase"> lowercase</label>
+        <label><input type="checkbox" id="stripSubdomains"> No subdomains</label>
+      </div>
+
+      <div class="controls">
+        <button class="btn-primary" onclick="extractDomains()">Extract</button>
+        <button class="btn-secondary" onclick="clearAll()">Clear</button>
+        <button class="btn-secondary" onclick="loadSample()">Sample</button>
+      </div>
+    </div>
+
+    <!-- OUTPUT PANEL -->
+    <div class="card output-wrap">
+      <h2>Results</h2>
+
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-value" id="countFound">0</div>
+          <div class="stat-label">Found</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="countUnique">0</div>
+          <div class="stat-label">Unique</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="countFiltered">0</div>
+          <div class="stat-label">Showing</div>
+        </div>
+      </div>
+
+      <input type="text" class="search-box" id="searchBox" placeholder="Filter results…" oninput="filterOutput()">
+
+      <div class="tld-tags" id="tldTags"></div>
+
+      <div class="chart" id="tldChart"></div>
+
+      <textarea id="output" readonly placeholder="Extracted domains appear here…"></textarea>
+
+      <div class="controls">
+        <button class="btn-success" onclick="copyOutput()">Copy</button>
+        <button class="btn-secondary" onclick="download('txt')">.txt</button>
+        <button class="btn-secondary" onclick="download('csv')">.csv</button>
+        <button class="btn-warning" onclick="download('json')">.json</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Copied!</div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let allDomains = [];      // raw extracted list
+    let uniqueDomains = [];   // deduped list
+    let filteredDomains = []; // after TLD + search filters
+
+    const DOMAIN_RE = /(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9][a-zA-Z0-9\-]*\.[a-zA-Z0-9\-]{2,}(?:\.[a-zA-Z0-9\-]{2,})*)/gi;
+
+    // ---------- THEME ----------
+    function setTheme(mode) {
+      if (mode === 'system') {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.body.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+      } else {
+        document.body.setAttribute('data-theme', mode);
+      }
+      ['light','dark','system'].forEach(t => $(`btn-${t}`).classList.toggle('active', t === mode));
+    }
+
+    // ---------- FILE DROP ----------
+    const dz = $('dropZone');
+    dz.addEventListener('click', () => $('input').focus());
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+    dz.addEventListener('drop', e => {
+      e.preventDefault();
+      dz.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        $('input').value = ev.target.result;
+        extractDomains();
+      };
+      reader.readAsText(file);
+    });
+
+    // ---------- EXTRACTION ----------
+    function extractDomains() {
+      const raw = $('input').value;
+      if (!raw.trim()) { showToast('Paste text or drop a file first', true); return; }
+
+      // Regex pass
+      const matches = [];
+      let m;
+      while ((m = DOMAIN_RE.exec(raw)) !== null) {
+        matches.push(cleanDomain(m[1]));
+      }
+
+      // Line-scan pass (catches ALL-CAPS domains like SOVRAPARIS.COM)
+      const LINE_RE = /^[A-Z0-9][A-Z0-9\-\.]*\.[A-Z]{2,}$/i;
+      raw.split(/\r?\n/).forEach(line => {
+        const t = line.trim();
+        if (LINE_RE.test(t) && !t.includes('@') && t.length > 3) {
+          const d = cleanDomain(t);
+          if (!matches.some(x => x.toLowerCase() === d.toLowerCase())) matches.push(d);
+        }
+      });
+
+      allDomains = matches;
+      processAndRender();
+    }
+
+    function cleanDomain(d) {
+      return d.replace(/^\./, '').replace(/\.$/, '').trim();
+    }
+
+    function processAndRender() {
+      let list = [...allDomains];
+
+      // Strip subdomains?
+      if ($('stripSubdomains').checked) {
+        list = list.map(d => {
+          const parts = d.toLowerCase().split('.');
+          if (parts.length > 2) return parts.slice(-2).join('.');
+          return d;
+        });
+      }
+
+      // Unique
+      if ($('uniqueOnly').checked) {
+        const seen = new Set();
+        list = list.filter(d => {
+          const k = d.toLowerCase();
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
+      }
+
+      // Lowercase
+      if ($('lowerCase').checked) list = list.map(d => d.toLowerCase());
+
+      // Sort
+      if ($('sortAlpha').checked) {
+        list.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+      }
+
+      uniqueDomains = list;
+      buildTLDFilters();
+      filterOutput();
+      $('countFound').textContent = allDomains.length;
+      $('countUnique').textContent = uniqueDomains.length;
+    }
+
+    // ---------- TLD & CHART ----------
+    function getTLD(domain) {
+      const parts = domain.split('.');
+      return parts.length >= 2 ? parts[parts.length - 1].toLowerCase() : '';
+    }
+
+    function buildTLDFilters() {
+      const counts = {};
+      uniqueDomains.forEach(d => {
+        const tld = getTLD(d);
+        counts[tld] = (counts[tld] || 0) + 1;
+      });
+
+      const container = $('tldTags');
+      container.innerHTML = '';
+      const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+      sorted.forEach(([tld, count]) => {
+        const tag = document.createElement('span');
+        tag.className = 'tld-tag';
+        tag.textContent = `.${tld} (${count})`;
+        tag.dataset.tld = tld;
+        tag.onclick = () => {
+          tag.classList.toggle('active');
+          filterOutput();
+        };
+        container.appendChild(tag);
+      });
+
+      // Chart top 6
+      const chart = $('tldChart');
+      chart.innerHTML = '';
+      const max = sorted[0]?.[1] || 1;
+      sorted.slice(0, 6).forEach(([tld, count]) => {
+        const pct = (count / max) * 100;
+        chart.innerHTML += `
+          <div class="bar-row">
+            <div class="bar-label">.${tld}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+            <div class="bar-count">${count}</div>
+          </div>`;
+      });
+    }
+
+    // ---------- FILTER & RENDER ----------
+    function filterOutput() {
+      const query = $('searchBox').value.trim().toLowerCase();
+      const activeTLDs = Array.from(document.querySelectorAll('.tld-tag.active')).map(t => t.dataset.tld);
+
+      filteredDomains = uniqueDomains.filter(d => {
+        const matchSearch = !query || d.toLowerCase().includes(query);
+        const matchTLD = activeTLDs.length === 0 || activeTLDs.includes(getTLD(d));
+        return matchSearch && matchTLD;
+      });
+
+      $('output').value = filteredDomains.join('\n');
+      $('countFiltered').textContent = filteredDomains.length;
+    }
+
+    // ---------- ACTIONS ----------
+    function clearAll() {
+      $('input').value = '';
+      $('output').value = '';
+      $('searchBox').value = '';
+      $('tldTags').innerHTML = '';
+      $('tldChart').innerHTML = '';
+      allDomains = []; uniqueDomains = []; filteredDomains = [];
+      $('countFound').textContent = '0';
+      $('countUnique').textContent = '0';
+      $('countFiltered').textContent = '0';
+    }
+
+    function copyOutput() {
+      const out = $('output');
+      if (!out.value) return;
+      out.select();
+      document.execCommand('copy');
+      showToast('Copied to clipboard!');
+    }
+
+    function download(fmt) {
+      if (!filteredDomains.length) { showToast('Nothing to export', true); return; }
+      let blob, filename, type;
+      if (fmt === 'txt') {
+        blob = new Blob([filteredDomains.join('\n')], { type: 'text/plain' });
+        filename = 'domains.txt';
+      } else if (fmt === 'csv') {
+        const rows = filteredDomains.map(d => `${d},.${getTLD(d)},${d.length}`);
+        blob = new Blob([`domain,tld,length\n${rows.join('\n')}`], { type: 'text/csv' });
+        filename = 'domains.csv';
+      } else {
+        const json = filteredDomains.map(d => ({ domain: d, tld: getTLD(d), length: d.length }));
+        blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
+        filename = 'domains.json';
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+      showToast(`Downloaded ${filename}`);
+    }
+
+    function loadSample() {
+      $('input').value = `SOVRA PARIS
+SOVRAPARIS.COM
+AMORANTI
+AMORANTI.CO
+ONYXLABSPEPTIDES
+ONYXLABSPEPTIDES.COM
+CLARA & BELLE SCOTTSDALE
+CLARABELLE-SCOTTSDALE.COM
+BADWIA
+BADWIA.COM
+VIPER TONICS
+VIPERTONICS.COM
+THE RURAL BOUTIQUE
+THERURALBOUTIQUE.COM
+ELWAYN
+ELWAYN.COM
+JELLY GLOW
+GLOWTIDE.STORE
+ELUPPO
+ELUPPO.COM
+TU PEDIATRA EN CASA
+TUPEDIATRAENTUCASA.COM
+EMMGEMSCREATIONS
+EMMGEMSCREATIONS.SHOP
+BOOK LIGHT
+BOKLIGHT.STORE
+RT 66 RHINESTONES AND BLING
+RT66RHINESTONESANDBLING.COM
+LUMINIOURY
+LUMINIOURY.ONLINE
+BIOELIX
+BIOELIXNATURALCOSMETICS.COM
+MY STORE
+MCKENZIEMAEBOUTIQUE.COM
+W G GRINTER
+WGGRINTER.COM
+MY STORE
+MERVINSCALES.STORE
+XPERIENCEBEAUTY
+XPERIENCEBEAUTY.COM
+KHETTA RENOVACTION
+KHETTARENOVACTION.COM
+MORAGLOW
+MORAGLOW.SHOP
+LA VILA MERCH
+LAVILAMERCH.COM
+DAIMOR
+DAIMOR.NET
+MONZEA
+MONZEA.COM
+OLIVER & SOPHIA LONDON
+OLIVERSOPHIALONDON.COM
+GLOWVIA
+GLOWVIA.STORE
+RETANOVA PEPTIDES
+RETANOVAPEPTIDES.COM
+NO TITLE AVAILABLE
+KHELSTUDIOS.COM
+BUMKINS
+BUYBUMKINS.COM
+SHOPDLY
+SHOPDLY.COM
+BRILLIANT ALCHEMY
+BRILLIANTALCHEMY.NET
+MY STORE
+LADYSTEPG.SHOP
+WHYCHIC™ – LUXURY LEATHER WALLETS & EVERYDAY ACCESSORIES
+WHYCHIC.COM
+EASYSTOV
+EASYSTOV.COM
+BABSIE & CO. DESIGNS
+BABSIECODESIGNS.COM
+LUMEO
+LUMEOBEAUTY.SHOP
+CRAFTYLAB | DIGITAL NOTEBOOKS, PLANNERS & CREATIVE DOWNLOADS
+CRAFTYLAB.STORE
+MY STORE
+BOWPANIER.COM
+CROSS MY HEART NOPE TO DIE
+NOPE2DIE.COM
+NO TITLE AVAILABLE
+DRINKFUNGIFUEL.COM
+ELVIRA
+ELVIRAPERFUMES.COM
+TANNAD
+TANNAD.COM
+THE NOMAD LABLE — ARCHIVE-LED BELT COLLECTION
+NOMADLABLE.COM
+STYLE TRENDS
+STYLEBOUTIQUESTORE.COM
+PAVONINE
+PVNMISTS.COM
+VER
+VEROFFICIAL.SHOP
+DOBRYLIFE
+DOBRYWELLNESS.COM
+STARZZSUPPLY
+STARZZSUPPLY.COM
+L´E CHANTANEL
+LECHANTANEL.COM
+TECHAURA | PREMIUM TECH ESSENTIALS IN PAKISTAN
+TECHAURA.SHOP
+TECHAURA | PREMIUM TECH ESSENTIALS IN PAKISTAN
+TECHAURA.SHOP
+SOLUPULSE
+SOLUPULSE.COM
+LOVEANI
+LOVEANI.STORE
+ELECTRO DESTOCKS
+ELECTRO-DESTOCKS.FR
+MINOSRING
+MINOSRING.COM
+SALT & STONE OUTLET SHOP | NATURAL DEODORANT THAT ACTUALLY WORKS
+SALTANDSTONEDISCOUNT.COM
+LUMORA SHOP
+LUMORASTOREE.COM
+BELIXFIT
+BELIXFIT.COM
+MAISON LUNESCIMENTO
+MAISONLUNESCIMENTO.COM
+VASNERY PUZZLE VASES
+MIND-MAZE-CERAMICS.STORE
+SCOOPS ANONYMOUS
+SCOOPSANYMOUS.COM
+REGAIN COSMETICS
+REGAINCOSMETICS.COM
+FREE
+SHOPFREE.US
+GEARSIX.SHOP
+GEARSIX.SHOP
+SCHADEFORMULIER KOPEN
+SCHADEFORMULIERKOPEN.NL
+GULFMART
+GULFMART.ORG
+LIBRERIA SHAAR
+LIBRERIASHAAR.COM
+R&R CREATIONS
+RRCRAFTCREATIONS.SHOP
+SOOTHINGLABS
+SOOTHINGLABSCO.COM
+MAISONDELGARDE | ÉLÉGANCE INTEMPORELLE, STYLE SANS EFFORT
+BLUERIDGEBAGS.COM
+MAISON CALLYSTA
+MAISONCALLYSTA.COM
+SUPINE CITIZEN
+SUPINECITIZEN.COM
+NORTHWOOD VALE
+NORTHWOODVALE.COM
+LITTLE SUNFLOWERS MAIL CLUB
+LITTLESUNFLOWERSMAILCLUB.COM
+IMPRESSION 3D AU QUÉBEC | OBJETS PERSONNALISÉS | CRÉALTEK
+CREALTEK.CA
+LUMÉVIA
+LUMEVIA-SHOP.COM
+LIVARO.MYSHOPIFY.COM
+SHOPLIVARO.ORG
+BLURAY-DVD
+BLURAY-DVD.COM
+RECOVERYPRO – PREMIUM FITNESS RECOVERY TOOLS
+GETRECOVERYPRO.COM
+WHOLESALE PET TOYS& BEDS SUPPLIER
+PAWPALWORLD.SHOP
+MY STORE
+REEVERSMEDIA.STORE
+HUNTHUB
+HUNTHUB.IN
+COLDBELT™
+COLDBELT.PL
+COLDBELT™
+COLDBELT.PL
+PRS STUDIO
+PRSSTUDIO.COM
+MI TIENDA
+DTFPLANTILLAS.COM
+THE SOUTH OF FRANCE & CO
+THESOUTHOFFRANCECO.COM
+RAWS WEAR
+RAWSWEAR.COM
+MI TIENDA
+TUCESTA.US
+MY STORE
+ELLISMOHAIR.SHOP
+HOOMMEESH
+HOOMMEESH.STORE
+我的商店
+BOOCAN.ONLINE
+UNIEZ
+UNIEZ.STORE
+POD MWSANTOS
+PIXELBREW.US
+MODEPARIS
+MODEPARIS.SHOP
+TRAUMA CODE DESIGNS
+TRAUMACODEDESIGNS.COM
+BRAZCOL COFFEE
+BRAZCOLCOFFEE.COM
+CLOCHETTE CRÉA
+CLOCHETTECREA.FR
+LUNAR PATHS
+LUNARPATHS.CO
+STILLVASE | AFFORDABLE VASES & BUDGET HOME DECOR UK
+STILLVASE.COM
+GEARDRIFT
+GEARDRIFTCO.COM
+TWISTED SPARKLES BY TIA
+TWISTEDSPARKLESBYTIA.COM
+PURE VITA LUXE
+PUREVITALUXE.COM
+AMORAE STUDIO
+AMORAECANDLES.COM
+MODAM DENSTINY
+MODAMDESTINY.COM
+GARDEWEAR | PREMIUM PULL-ON PROTECTION FOR EVERYDAY CONFIDENCE
+GARDEWEAR.CO.UK
+GARDEWEAR | PREMIUM PULL-ON PROTECTION FOR EVERYDAY CONFIDENCE
+GARDEWEAR.CO.UK
+VIMASK.COM
+VIMASK.COM
+SALONGGROSSISTEN.SE
+SALONGGROSSISTEN.SE
+SILK BLOOM
+SILKBLOOM.ONLINE
+MYKOSO
+MYKOSO.BIO
+GABRIELLE OUTLET
+GABRIELLE-OUTLET.COM
+VANTAGE
+VANTAGEDETS.COM
+VANTAGE
+VANTAGEDETS.COM
+VIBEIX
+VIBEIX.IN
+DGLUXURY
+DG-LUXURY.COM
+CARAPAL
+CARAPAL.COM
+VENTO
+VENTO-MILAN.COM
+ELECTRONICS STORE
+ELECTRONEXUS.US
+MY STORE
+TIENDATENNIS.COM
+NŌZL
+NOZL.COM.AR
+BOOHOO DE OFERTAS
+BOOHOOEXPRESS.COM
+CIAO CHÉRIE
+XN--CIAOCHRIE-G4A.FR
+ATELIER BULORÉ - CREATIONS UNIQUES ET ORIGINALES EN JESMONITE
+ATELIER-BULORE.COM
+SWAG VERSE
+SWAGVERSE.IN
+JESTER
+JESTERCONCEPTS.CO
+FRAYED LOGIC
+FRAYEDLOGICLAB.COM
+3HMONG MARKETPLACE
+3HMONGMARKETPLACE.COM
+KITTYKLASP
+KITTYKLASP.COM
+MINHA LOJA
+NUTTRAVIT.COM
+BONAVA LONDON
+BROMLEY-LONDON.COM
+SURVIVE THE I-70 DRIVE
+SURVIVETHEI70DRIVE.COM
+ADORNEDGLORYHAIR.COM
+ADORNEDGLORYHAIR.COM
+SALTROOTAPOTHECARY
+SALTROOTAPOTHECARY.COM
+SALTROOTAPOTHECARY
+SALTROOTAPOTHECARY.COM
+SEEANS
+SENYORK.COM
+MAHUNA COSMETICS
+MAHUNACOSMETICS.FR
+MI TIENDA
+MAISONSOLET.COM
+HORIZON INTERIORS
+HORIZONINTERIORS.STORE
+HORIZON INTERIORS
+HORIZONINTERIORS.STORE
+COUTURE CAPS
+COUTURECAPS.COM
+COUTURE CAPS
+COUTURECAPS.COM
+COUTURE CAPS
+COUTURECAPS.COM
+WMKR
+SHOPWMKR.COM
+NYASIALEBRIS
+NYASIALEBRIS.NET
+AURA
+AURA-HOME-FASHION.COM
+SPORTPULSE
+SPORTPULSESHOP.COM
+SHOP ELLIE LAYNE CO.
+SHOPELLIELAYNECO.COM
+SANDAROZ – PURIFIEZ VOTRE ESPRIT
+SANDAROZ.COM
+DSTYLE CLOTHING BESPOKE BLAZERS AND KAFTANS REDEFINED
+DSTYLECLOTHING.NET
+BEST PDO THREAD INJECTOR
+BESTPDOTHREADINJECTOR.COM
+MI TIENDA
+VAYZZEN.COM
+ANA MAYA
+ANAMAYA.FR
+SURFORY.IN
+SURFORY.IN
+PRIME URBAN
+PRIMEURBANOFFICIAL.COM
+NO TITLE AVAILABLE
+LITHECURATION.COM
+EUPHORIAGENICS
+EUPHORIAGENICS.COM
+ELVÉRA
+ELVERA-JEWELRY.COM
+ANGÉLBLACK_ALV
+ANGELBLACKALV.COM
+LICKR
+LICKR.IN
+SUSTAINABLE CLOTHING NORTH AMERICA | RECYCLED COTTON - BLUE & YELLOW
+BLUEANDYELLOWPROJECT.COM
+EARNTESTIFY
+EARTESTIFY.NET
+LUMA
+SOIR-LUMA.COM
+TINA‘S ALLERLEI
+HIGHSMILEBYTINASALLERLEI.COM
+SELLNITY
+SELLNITY.IN
+3DPRINTALUX
+3DPRINTALUX.STORE
+SLIK SKIN
+SILKSKINCLINIC.STORE
+ROVIAN
+ROVIANBD.COM
+BOKA
+BOKA.COM.AR
+PESTSHIELD® - SAY GOODBYE TO PESTS FOREVER
+PESTSHIELD.US
+KS SUPPLY CO
+KSSUPPLYCO.STORE
+PRIMALISFIT
+PRIMALISFIT.COM
+LSP
+LSPCLOTHING.COM
+MY CHARM BAR
+MYCHARMBAR.COM
+ESTÉRE | LUXURY ABAYAS IN KUWAIT
+ESTERE.STORE
+APPE-STOREONE
+APPE-STOREONE.STORE
+VEEZYEAZYDRIPOFFICIAL-TH0JY
+VEEZYEAZYDRIPOFFICIAL-TH0JY.NET
+MY STORE
+THELUMORA.COM.CO
+SIX PM
+SIXPMOUTLET.COM
+MI TIENDA
+FREESPORTSFITNESS.STORE
+SPOKOJPUPILA.PL
+SPOKOJPUPILA.PL
+FORMFLOW
+BEFORMFLOW.COM
+POINTE-SAINT-CHARLES PEPTIDES (PC)
+THEPOINTEPEPTIDES.CA
+PURELIMPIO
+PURELIMPIO.COM
+VÊTIX
+VETIX.SHOP
+MENSCARE2026
+MENSCARE2026.COM
+ERAFOOT
+ERAFOOT.STORE
+KABELFIXAREN
+KABELFIXAREN.SE
+SNACK GALAXY
+SNACKGALAXY.US
+MOVIMIND LAB
+MOVIMINDLAB.COM
+$LEAZY MULA
+SLEAZYMULA.COM
+VYBEO
+SHOPVYBEO.COM
+VITANATURE
+PURELYGREEN.SHOP
+BLUR CONSEALER STICK
+BLURCONCELARSTICK.COM
+BIRCH HOUSE GARDENS
+BIRCHHOUSEGARDENS.CA
+THE CHIP SHOP
+THECHIPSHOP.STORE
+RELAVIO
+RELAVIO.PL
+MIDNIGHT SPA
+MIDNIGHTSPACOSMETICS.COM
+LZI DIGITAL SHOP
+LZIACADEMY.FR
+ATELIER ORI
+THEATELIERORI.COM
+VELIX CAM
+VELIXCAM.COM
+LESS IS MORE GREEN TAG FOUNDATION
+GREENTAGFOUNDATION.ORG
+GAMERCASES
+GAMERCASES.COM
+MALA SUERTE COFFEE
+MALASUERTECOFFEE.COM
+ZELVAH
+ZELVAH.COM
+ZELVAH
+ZELVAH.COM
+ZELVAH
+ZELVAH.COM
+ZELVAH
+ZELVAH.COM
+SOSO LA SACOCHE
+SOSOLASACOCHE.FR
+VIRASAT TEA
+VIRASATTEA.COM
+CANDELA RUBIO
+CANDELARUBIO.COM
+CARLAA
+CARLAA.CO
+TIENDAS SEGURA
+TIENDACOMPRAMEJOR.SHOP
+VOLTMAGNET
+VOLTMAGNET.COM
+VOLTMAGNET
+VOLTMAGNET.COM
+MY STORE
+LALAVENTA.COM
+FUMEXVAPE
+FUMEXVAPE.COM
+BELFORA
+BELFORACOLOMBIA.SHOP
+PURE ORIGIN CARE
+PUREORIGINCARE.COM
+BALANCEROUTE
+BALANCEROUTE.COM
+LAXMI STORE
+SHOPZIOS.SHOP
+COZYCORNERLIVING
+COZYCORNERLIVING.NET
+URBANCART
+URBANCART.US
+LITTLEESSENTIALS
+LITTLEESSENTIALS.IN
+TIANA, THE SERIAL CRAFTER
+TIANATHESERIALCRAFTER.COM
+CREXE
+CREXE.STORE
+BEAUMONT POSTERS
+BEAUMONTPOSTERS.COM
+KALESSICOSMETICS
+KALESSICOSMETICS.COM
+SILVERANCHOR COMMERCE
+KENSVARA.SHOP
+FIRST GEAR LABS
+FIRSTGEARLABS.COM
+LAZOJOYERIA
+LAZOJOYERIA.COM
+VEYRON LIFESTYLE
+VEYRONLIFESTYLE.COM
+MEIN SHOP
+ELITE24SPORT.STORE
+FURNEXA HOME
+FURNEXAHOME.COM
+REDLINE SUPPLY
+REDLINESUPPLYCO.STORE
+REDLINE SUPPLY
+REDLINESUPPLYCO.STORE
+OPTIPURE
+SHOPOPTIPURE.COM
+LIMPIPET CHILE | ACCESORIOS PARA MASCOTAS Y QUITAPELOS
+LIMPIPET.COM
+SWEET OCTOBER & CO.
+SWEETOCTOBERCO.COM
+COREOUTFIT
+COREOUTFIT.US
+LUMIKOJIC
+LUMIKOJIC.STORE
+B&J LUXE BOUTIQUE
+BJLUXEBOUTIQUE.COM
+RAIZ UREA
+RAIZUREA.SHOP
+PRISMG.SHOP
+PRISMG.SHOP
+JJ&VV SELECT
+JVOPENENDTOYS.TW
+NOSEFLOW
+NOSE-FLOW.NET
+SOUTH SHYRE
+SOUTHSHYRE.COM
+ZWIERZĘTA
+PETZOOMNOOK.PL
+TIMBERBOX
+TIMBERBOX.CO
+RM VISIONARY GROUP LLC
+BALEIGHSPLACE.STORE
+WEBDEALZSHOPPERSAVE.COM
+WEBDEALZSHOPPERSAVE.COM
+VICHY
+VICHYSTORE.ONLINE
+MY STORE
+HANGARBOYSSUPPLY.COM
+CLEO VICTORIA
+DIGITALACADEMIE.FR
+DEV ASSOCIATES
+DEVASSOCIATES.STORE
+EMPRYN EXTENSIONS
+EMPRYNEXTENSIONS.COM
+OREILLER CERVICAL MÉMOIRE DE FORME | CERVALYA 2.0
+CERVALYA.COM
+HIDIVA
+HIDIVA.STORE
+BE BOLD. BE YOU. BE A REAL BADDIE!
+REALBADDIELIFE.COM
+MYOWNSKIN
+MYOWNSKIN.US
+ELECTRO CART
+ELECTROCART.STORE
+TOUT.M
+TOUT-M.COM
+NAYELI HADIL
+NAYELIHADIL.COM
+OPTISTASIS — LYMPHATIC WELLNESS, BEAUTY TOOLS & GLOW SUPPLEMENTS
+OPTISTASIS.HEALTH
+DRIVENOVA | CAR ACCESSORIES
+DRIVENOVA.SHOP
+VIRELA
+VIRELACO.COM
+NOS-NO-FLUXO
+LOJA-FLUXO-ELETRONICO.COM
+獨獨角落
+HKMOVIESART.COM
+BELLY WAX
+BELLYWAX.COM
+ICANDYCURVES
+ICANDYCURVES.SHOP
+HARMONYKART
+HARMONYKART.IN
+QUALITY&UNIQUE FINDS AT UNBEATABLE PRICES PERSONALIZED SHOPPING
+NEXCARTLIVE.COM
+SKYPILOTSTUDIO
+SKYPILOTSTUDIO.COM
+VIRAL VOLTS
+VIRALVOLTS.COM
+NAYAAB FASHION
+NAYAABFASHION.COM
+CANONVEX
+CANONVEX.COM
+VYLERA | ELEVATE YOUR EVERYDAY
+SHOPVYLERA.COM
+MAZLIKO
+MAZLIKO.COM
+MUDBALLIN
+MUDBALLIN.COM
+ECOTAIL
+FURFLORA.COM
+BEAUTY MACHINE FOR SALE | USA SPA EQUIPMENT SUPPLIER W/ FREE TRAINING
+SZERO.US
+OVELA
+OVELA-SHOP.COM
+ELEVATE SPORTS
+FITZONESUPPLIES.COM
+ARIMA JOURNALS
+ARIMAJOURNALS.COM
+ORGANIC QUEEN BEE
+ORGANICQUEENBEE.COM
+FEMORA
+FEMORA.MX
+AUSSIE SITTERS
+AUSSIESITTERS.COM
+THE NDCOLLECTIVE
+THENDCOLLECTIVE.CO.UK
+KINGDOM CLEARANCE
+KINGDOMCLEARANCE.CO.UK
+NUTRAXELL
+NUTRAXELL.COM
+MY STORE
+NEMOSTORE.IN
+ZHAGAMAGA
+ZHAGAMAGA.COM
+LIVÉN
+XN--LIVN-DPA.COM
+JAHMARFRAGRANCES
+JAHMARESSENTIALS.STORE
+SPLASHKINS
+SPLASHKINS.COM
+EBBFLOJEWELRY
+EBBFLOWJEWELRY.CO
+LUMERABABY
+LUMERABABY.SHOP
+TEM PRIME
+TEMPRIME.SHOP
+HVCKLIFE
+HVCKLIFE.STORE
+HAVALUXION
+HAVALUXION.COM
+GAMEDAY
+THEGAMEDAYOUTFITTERS.COM
+LYRA
+LYRASTORE.CO
+LYRA
+LYRASTORE.CO
+THE NN PRIME COLLECTION
+THENNPRIMECOLLECTION.COM
+MELAXINS DOCTORS
+DRMELAXINOFICIALUK.COM
+SHEIRA STUDIO
+SHEIRASTUDIO.IN
+COZYHOMIES
+SHOPCOZYHOMIES.COM
+VELMORA
+GROUPVELMORA.STORE
+BLANK CULTURE
+BLANKCULTURE.SHOP
+BLANK CULTURE
+BLANKCULTURE.SHOP
+THE NURSE LABEL
+NURSELABEL.COM
+MOONMARKBOUTIQUE
+MOONMARKBOUTIQUE.COM
+MOONMARKBOUTIQUE
+MOONMARKBOUTIQUE.COM
+MAISON FRESON
+MAISONFRESON.COM
+DUMYA
+DUMYA.STORE
+MELERON
+MELERON.COM
+CHOPSMART
+CHOPSMART.STORE
+ASCENDGOODS
+SHOPASCENDGOODS.COM
+COOKBOOKBIT
+COOKBOOKBIT.COM
+CASA
+CASAWEBSHOP.COM
+CASA
+CASAWEBSHOP.COM
+SUMINISTROS 360
+SUMINISTROS360.NET
+ONE NORTH FACTORY
+ONENORTHFACTORY.COM
+FREEDOGY
+FREEDOGY.STORE
+NOIRÉ ATELIER
+NOIRE-ATELIERPARIS.FR
+ACTIVE FITNESS
+ACTIVE-FITNESS.STORE
+MISS DAINTY HAIR
+MISSDAINTYHAIR.COM
+HANNE SØRENSEN
+HANNESORENSEN.DK
+SWIFTRELIEF
+SWIFTRELIEF.NET
+MILOSTORE
+MILOSTORE.NET
+SONGBIRD VINE
+SONGBIRDVINE.COM
+HAIRO
+HAIROHAIRFILLER.COM
+DECRETA Y ATRAE
+DECRETAYATRAE.COM
+MAISON SISAL
+MAISONSISAL.COM
+PICKLEBALL PADDLE AND OTHERS
+PICKLE8.CA
+ZENVY
+ZENVYY.NET
+TT RESELLZ
+TTRESELLZ.COM
+VYNIX
+VYNIX-STYLE.COM
+LYRES
+LYRESSTORE.COM
+POVIKO - AFFORDABLE MODERN WATCHES FOR MEN EVERYDAY STYLE TIMEPIECES
+POVIKO.COM
+MADAME POM
+MADAMEPOMERANIAN.COM
+MY TRAVSAFE
+MYTRAVSAFE.COM
+ANTI GODS
+ANTIGODS.STORE
+VELLUXEPETS
+VELLUXEPETS.STORE
+IMAGINATION STATION
+SHOPIMAGINATIONSTATION.COM
+BXCH
+BXCHTECH.STORE
+LAZURA
+LAZURA.PL
+PROGRESSIVE MEDIA
+PROGRESSIVEMEDIA.US
+MOCHI STUDIO
+MOSHISTUDIO.SHOP
+SMART SCOOP
+NOVATLY.COM
+SMART SCOOP
+NOVATLY.COM
+KILLERLEANFIT
+KILLERLEANFIT.COM
+ARCHIVO DE MARCA
+ARCHIVODEMARCA.COM
+DENORIX
+DENORIX.COM
+ALMA DE VIDRIO
+ALMADEVIDRIO.SHOP
+THE LOST AND FOUND PROJECT
+THELOSTANDFOUNDPROJECT.COM
+KIDSPHERE
+KIDSPHEREUSCOMPANY.COM
+SIMPLY LIGHT
+SIMPLYLIGHT.NET
+FLEXREALM
+FLEXREALM.US
+KEVIN LISTER
+KEVINLISTERPETS.STORE
+SHEDAWAY
+SHEDAWAY.CA
+GEAR UP ATHLETICS
+GEARUPATHLETICS.STORE
+VOLKEEP
+VOOLKEEP.COM
+VOLKEEP
+VOOLKEEP.COM
+DRIP SHAVE
+DRIPSHAVE.CO
+VACUU
+VACUU.SHOP
+SENSÉA
+SENSEALOUNGEWEAR.COM
+NEXHOME
+NEXHOME.SITE
+BY ELINAR
+BYELINAR.COM
+CLAWBUD
+CLAWBUD.STORE
+DIJA PICKS
+DIJAPICKS.STORE
+BLOCKVERSE
+BLOCKVERSEUSA.COM
+NICKGLO
+NICKGLO.COM
+AUTENTYCZNE MONETY | SKLEP NUMIZMATYCZNY
+MONETY-PASJA.SHOP
+ATOMICWOLFGAMING
+ATOMICWOLFGAMING.COM
+FRESHLY ROASTED PREMIUM COFFEE AND MERCH DELIVERED
+THEEARLYRISERS.COM
+HOME DECOR
+HOMEDECORHUB.STORE
+JACA MULTISERVICES
+JACADIGITALHUB.COM
+BOTANIPRINTS
+BOTANIPRINTS.COM
+NOVAHOME
+GETNOVAHOME.COM
+WILDBIRD BABYS CARRIER
+WILDBIRDBABIES.COM
+GUIYUMASKS
+GUIYUMASKS.COM
+GLOSSARY COLOMBIA
+GLOSSARYCOLOMBIA.COM
+GLOSSARY COLOMBIA
+GLOSSARYCOLOMBIA.COM
+RACHELLEUM
+RACHELLEUM.COM
+KRYAHAIR
+KRYAHAIR.COM
+ZOLVRI
+ZOLVRI.COM
+ISHAQ MART
+ISHAQMART.ONLINE
+OVERNIGHTBOYS
+OVERNIGHTBOYS.COM
+ANDALEYA STORE
+ANDALEYA.CO.UK
+DOORBLOCK – PREMIUM DOOR BARRICADE DEVICE FOR ENHANCED HOME SECURITY
+DOORBLOCK.CO.UK
+HOUSE OF XEN
+HOUSEOFXEN.SHOP
+SOUTHSHORE TRADING
+NORCHESTER.SHOP
+MA BOUTIQUE
+BEAUTYSEREA.COM
+ATELIER VIREL
+ATELIERVIREL.FR
+DONBOSS
+DONBOSS.CO
+CHOSEN THREADS
+CHOSENTHREADS.NET
+CROXIFY.IN
+CROXIFY.IN
+TALARIS
+TALARIS.SHOP
+OTAKU KINGDOM
+OTAKUKINGDOM.SITE
+CLICKIEKEY
+CLICKIEKEY.COM
+BT METAL
+BTMETALFAB.COM
+THE WALK IN CLOSET
+GOSABRINA.COM
+おまかせオフィス便.COM
+OMAKASE-OFFICEBIN.COM
+TOOSHALOT
+TOOSHALOT.COM
+DISTANT DREAMERS
+DISTANTDREAMERS.STORE
+RENOVAFWPMEXICO
+RENOVAFWPMEXICO.SHOP
+SHOPTILYADROPSTORE.COM
+SHOPTILYADROPSTORE.COM
+NESLERSSHOPTILYADROPSTORE.COM
+NESLERSSHOPTILYADROPSTORE.COM
+BOUND — A GAME FOR TWO
+BOUNDGAME.IO
+USFLUSH
+USFLUSH.COM
+-
+LENASKLEP.COM
+YORAMART – SMART SHOPPING FOR EVERYDAY ESSENTIALS | BEST ONLINE STORE
+YORAMART.IN
+LUVILO
+LUVILO.STORE
+MY STORE
+LOVEABLEPET.STORE
+CORVIN GLASS
+CORVINGLASS.COM
+MY STORE
+BRYSONGARDNERCOACHING.COM
+JAKE & IPI
+JAKEANDIPI.COM
+HOUSE OF SOPHIE
+HOUSESOPHIE.COM
+FROM JOHANNA
+FROMJOHANNA.COM
+FITNESS-SPORTSLAB.STORE
+FITNESS-SPORTSLAB.STORE
+YEARMARKED
+YEARMARKED.US
+SANATUSKIN
+SANATUSKIN.COM
+STREET FLOW
+STREETFLOW.WEBSITE
+COWBOY LEATHER APPAREL
+COWBOYLEATHERAPPARELLLC.COM
+MI TIENDA
+MADE-IN-SUIZA.COM
+QUANXORA LTD
+QUANXORALTD.STORE
+VOLTKARTY – INDUCTION COOKTOPS, INFRARED STOVES & ELECTRIC TANDOOR
+VOLTKARTY.COM
+SEAMLYHOME
+SEAMLYCO.COM
+KYTOS NATURALS
+KYTOSNATURALS.COM
+DOUILLETCAMPING
+DOUILLETCAMPING.COM
+BYOT
+BYOT.STORE
+TREND ITEMS
+LAVISHCOMMODITIES.COM
+WORN LAB
+WORNLAB.COM
+DAILY SUPPLY CO.
+SHOPDAILYSUPPLYCO.COM
+MGNT APPAREL
+MGNTAPPAREL.COM
+KPOPHUB
+KPOPHUB.SHOP
+LORVANO
+LORVANO.NET
+OMNIBAG
+OMNIBAG.HU
+INGENIOUS GENERATIONS, LLC
+INGENIOUSGENERATIONS.COM
+ZAARVIO
+ZAARVIO.COM
+CENTAURI VIEW
+CENTAURIVIEW.COM
+AN MATCHA 抹茶
+ANCOFFEECORNER.COM
+SOLSTICE
+DSOLSTICE.STORE
+SOLUTIONS
+PRISMAMETHODS.COM
+LUMAVÉ
+XN--LUMAVSKIN-F4A.COM
+NOXULAB
+NOXULAB.COM
+MINHA LOJA
+SIGMACLOUDAPP.COM
+KOVA
+KOVA-FIT.COM
+KAXWEAR
+KAXWEAR.STORE
+REPRSNT | REP YOUR NATION
+REPRSNTSPORTS.COM
+NVA-OUT
+NVA-OUT.COM
+TODOENUNO SHOP
+COMPRAYACONJOSE.COM
+MY STORE
+THEKINDORA.COM
+MEXIV STORE
+MEXIVSTORE.COM
+NOCTURNE NOTES
+NOCTURNENOTES.STORE
+VVSVISIONS
+SHOPVVSVISIONS.COM
+RESELLERS SUPPLIES
+RESELLERSSUPPLIES.COM
+ELUNYIA
+ELUNYIA.COM
+EMPIRE GOLF
+EMPIREGOLFAPPAREL.COM
+KUP LUMIBEAM PRO – NAJLEPSZY PROJEKTOR PRZENOŚNY W POLSCE
+LUMISHOP.PL
+THE SMART EXPLORER GUIDE
+THESMARTEXPLORERGUIDE.COM
+LEBA EYEWEAR
+LEBAEYEWEAR.COM
+YLÉ COLLECTION
+YLECOLLECTION.FR
+GHARLIFE
+THEGHARLIFE.SHOP
+HOUSE OF VIRELLE
+HOUSEOFVIRELLE.STORE
+VELICHKOV3D LAB
+VELICHKOV3DLAB.COM
+CROSS & CROWN CO.
+CROSSANDCROWN.STORE
+ORA
+ORA-STORE.FR
+FEMORA
+FEMORAFITNESS.COM
+XDROPX
+XDROPX.COM
+MI MASCOTA MX
+MIMASCOTAMX.COM
+MAXORA
+MAXORAOFICIALEC.COM
+CANAROA
+CANAROA.COM
+ON POINT SIGNS
+ONPOINTSIGNS.CO.NZ
+EL SICARIO AU
+ELSICARIO.NET
+THE AWAKENED SOUL
+AWAKENEDSOULGOODS.COM
+ITGIRL SOCIETY
+ITGIRLSOCIETY.SHOP
+DISCOVERCHLOE.COM
+DISCOVERCHLOE.COM
+GOODBLESS
+GOODBLESS.STORE
+CLEARLEDGER DIGITAL
+CLEARLEDGERDIGITAL.COM
+GLOWAY | AUTHENTIC KOREAN SKINCARE IN EGYPT
+GLOWAYLABS.COM
+ZENTRACK
+ZENTRACK.FR
+CROWN AND CULTURE 3D GIFTS
+CROWNANDCULTURE3DGIFTS.COM
+PLUFFI
+PLUFFIOFICIAL.COM
+DIGIXPREMIUM
+DIGIXPREMIUM.COM
+JAKE & LISA VANCOUVER
+JAKELISAVANCOUVER.COM
+ميديكامو | مكملات غذائية طبية ومنتجات عناية بالبشرة علاجية - MEDICAMO
+MEDICAMO-EG.COM
+NEXA
+NEXAUK.COM
+BUILD CLOTHING
+BUILDCLOTHING.STORE
+MY STORE
+GLITTERBUGGEMS.COM
+EUVORACO
+EUVORACO.COM
+OPALINE-BEAUTY
+OPALINE-BEAUTY.FR
+J.A.M.A.L
+JAMAL-SA.COM
+LUXEPERFUMELV – LUXURY FRAGRANCE DECANTS & PERFUMES
+LUXEPERFUMELV.COM
+RITE
+RITECARE.SHOP
+NY BREAD DREAMERS
+NYBREADDREAMERS.STORE
+AFRODITE ART
+AFRODITEART.STORE
+LEAN
+LEAN-OFFICIAL.COM
+SIHIRLIDÜNYAM
+SIHIRLIDUNYAM.STORE
+SIHIRLIDÜNYAM
+SIHIRLIDUNYAM.STORE
+DRENVI
+DRENVI.STORE
+CRUNCH CLUB
+CRUNCHCLUB.NET
+BED MOUNT
+BEDMOUNT.STORE
+MUSTESSENTIALS.COM.MX
+MUSTESSENTIALS.COM.MX
+PEAKPATHCO
+PEAKPATHCO.COM
+HAK AUTO
+HAKAUTO.COM
+MOONSHINEDROP
+MOONSHINEDROP.SHOP
+BAY HILLS DISTRO SHOP
+BAYHILLSDISTRO.COM
+LUXESHIP
+LUXESHIP.US
+ONLINESHOPJALISCO
+ONLINESHOPJALISCO.COM
+MI TIENDA
+COMUNIDADAMC.STORE
+JONAH SMITH MERCH
+JONAHSMITH.STORE
+OUDORA.IN
+OUDORA.IN
+OKRAMA
+OKRAMA.COM
+SOURCENEST
+SOURCENEST.STORE
+FIRSTCHOICE CLOTHING
+FIRSTCHOICECLO.COM
+MY STORE
+TRENZO.PRO
+HALL-GO
+HALL-GO.COM
+INOVARRA
+INOVARRA.COM
+DC PREMIUM WATCHES
+DCPREMIUMWATCHES.COM
+MARY&MARGARET DUBLIN
+MARYMARGARETDUBLIN.COM
+UNFAMILIAR
+UNFAMILIAR.STORE
+UNFAMILIAR
+UNFAMILIAR.STORE
+UNFAMILIAR
+UNFAMILIAR.STORE
+UNFAMILIAR
+UNFAMILIAR.STORE
+THATDESIGN
+THATDESIGN.STORE
+MUNCHKIN MOMENTS
+MUNCHKINMOMENTS.SHOP
+YOLANDAOGLE.COM
+YOLANDAOGLE.COM
+ITGIRLCLUBSTORE.FR
+ITGIRLCLUBSTORE.FR
+ITGIRLCLUB.FR
+ITGIRLCLUB.FR
+EVERSOAR
+EVERSOAR.FR
+URBIFY STORE
+ORBIXASTORE.SHOP
+OTARI FOOTWEAR
+OTARI.SHOP
+DRIPSTOP
+DRIPSTOP.STORE
+MY STORE
+SHEEPIEDREAMS.STORE
+NECTAR™
+TRYNECTAR.SHOP
+RAJPOOT TECH
+RAJPOOTTECH.STORE
+VIBEMART
+VIBEMARTONLINE.SHOP
+TSUNDOKIST SOCIETY
+TSUNDOKIST.SHOP
+HOUSSES OPERATOR
+HOUSSESOPERATOR.COM
+RECUMOVEX
+RECUMOVEXPRO.SHOP
+3D ENGINE SHOP
+3DENGINE.SHOP
+CREATIVE EXPRESSIONS
+CREATIVEEXPRESSIONS.SHOP
+FRNEXTGEN
+FRNEXTGEN.COM
+AURA PEPTIDES
+AURAPEPTIDES.STORE
+HIGH-TECH
+HIGH-TECH-STORE.SHOP
+THE BRONZE
+THEBRONZE.STORE
+VALORA | WOMEN’S FASHION, BEAUTY & LIFESTYLE PRODUCTS
+VALORAOFFICIAL.STORE
+DRENADERM
+DRENADERM.COM
+404 NOT FOUND
+FUTBOLSHOP.NET
+WARHORSE DEVELOPMENT
+WARHORSEDEVELOPMENT.US
+PETIT PALETTE
+PETITPALETTE.COM
+SPIDEY VAULT
+SPIDEYVAULT.STORE
+AESTHETICO
+SHOPAESTHETICO.COM
+AROMALUXE
+ARROMALUXE.MA
+MA BOUTIQUE
+VIXFRAGRANCE.STORE
+PETICURE
+PETICURE.US
+SOFT SPACE BY DOLLY
+SOFTSPACEBYDOLLY.CO
+CHERRY PICKED BOOKS
+MYCHERRYPICKEDBOOKS.COM
+SORELLE
+HOUSESORELLE.COM
+MBQB
+MBQB.CL
+NOT LEGAL IN CALIFORNIA
+NOTLEGALCALIFORNIA.COM
+MI TIENDA
+VELLENZA.COM
+NUMFIX
+NUM-FIX.NET
+EIRA DEL BOSQUE
+TORNASOLARTE.COM
+TECHY JEWELRY
+TECHYJEWELRY.COM
+THE BLACK HULK
+THEBLACKHULK.STORE
+PAVER COMPANY​
+DOCTORPAVERSEALER.COM
+HARU MALL
+HARUMALL.NET
+MYTORCHY
+MYTORCHY.COM
+ATELIERONSTUDIO
+ATELIERONSTUDIO.COM
+CAFFINITY
+CAFFINITY.ONLINE
+MAISON MAURICE
+MAISONMAURICE.CH
+MODA OUTDOORS
+SHOPWITHMODA.COM
+IGNIS GLOW
+IGNISGLOW.COM
+VAULTED
+SHOPVAULTED.STORE
+MOCHI PAPER
+MOCHIPAPER.STORE
+PAWCAM™
+GETPAWCAM.COM
+GET GREAT PRODUCTS
+GETGREATPRODUCTS.NET
+IVOLTIX
+IVOLTIX.COM
+MY STORE
+MYWESTLETTER.COM
+VELARIOSST.COM
+VELARIOSST.COM
+LYRX
+LYRX.US
+EVLINA
+EVLINA.SHOP
+SUSANSANDRASHARON
+SUSANSANDRASHARON.COM
+ZINA STYLE - MOROCCAN FASHION BRAND
+ZINNASTYLE.SHOP
+HAKUNA BY ELSA
+HAKUNABYELSA.COM
+WE$TWAY
+WESTWAYPRODUCTION.COM
+MY STORE
+PUREALLURELAB.COM
+BIORELLE
+BIORELLE.NL
+EVERCARTS
+EVERCARTS.SHOP
+ZEN ORGANIC
+ZENORGANIC.PK
+THISISRESTORED.COM
+THISISRESTORED.COM
+MAGCUBIC
+MAGCUBICPRJCT.COM
+HOLLAND FLOWERS
+HOLLANDFLOWERSKW.COM
+NOMAD2TACTCCCAL
+NOMAD2TACTCCCAL.COM
+MY STORE
+MELIESBOUTIQUE.COM
+LINDENHOF BOETIEK
+LINDENHOF-BOETIEK.NL
+MY STORE
+ZIMUNE.COM
+VAQUERO & VINE
+VAQUEROANDVINE.COM
+MELLOFLO
+MELLOFLO.STORE
+AMINEPXRESS.SE
+AMINEXPRESS.SE
+SOUFFLEE
+SOUFFLEE.FR
+EIVO
+DESIQO.SHOP
+CATARMY ALLIANCE
+CATARMYALLIANCE.COM
+ÉCLIPSE PERFUMES
+ECLIPSEFRAGRANCE.COM
+YOUR OOTD
+LUCKYSSDAY.COM
+STILL ESSENTIALS
+STILLESSENTIALS.NL
+MY STORE
+NEXORFIT.IN
+WELLGADGET
+WELLGADGET.STORE
+YOULASE
+YOULASE.CO
+ALBATOOLSTORE
+ALBATOOLSTORE.COM
+MY STORE
+MENINX.SHOP
+SPURGEON LETTERS
+THESPURGEONLETTERS.COM
+BEVOCEAN
+BEVOCEAN.COM
+ZENNIRE UK
+ZENNIREUK.COM
+PUNCH PLUSHEE
+PUNCHPLUSH.STORE
+LUX COVE
+LUXCOVEBEAUTY.COM
+LUX COVE
+LUXCOVEBEAUTY.COM
+ REMNANTS
+REMNANTS.SHOP
+BEKILI LUXURY
+BEKILILUXURY.COM
+BEKILI LUXURY
+BEKILILUXURY.COM
+ZORASERUM | СЕРУМ ПРОТИВ СТАРЕЕНЕ С ВИТАМИН C, РЕТИНОЛ И ХИАЛУРОНОВА К
+ZORASERUM.COM
+ZORASERUM | СЕРУМ ПРОТИВ СТАРЕЕНЕ С ВИТАМИН C, РЕТИНОЛ И ХИАЛУРОНОВА К
+ZORASERUM.COM
+KITCHENIQ
+KITCHENIQSHOP.COM
+KITCHENIQ
+KITCHENIQSHOP.COM
+OLUX
+OLUXRING.PRO
+PRODUCTANDQUALITY
+PRODUCTANDQUALITY.COM
+FRAME CLASS
+FRAMECLASS.CO.UK
+NO EASY TAG
+NOEASYTAGCO.COM
+REBEL REPUBLIK
+RBLRPBLK.COM
+KITCHENWARE.CA
+URBANCOOKWARE.CA
+THREAD
+THREADDIFFUSION.COM
+MY STORE
+ASUFAR.COM
+DIFUSERBLOM
+DIFUSERBLOM.COM
+ASCEND SYSTEMS
+ASCENDSYSTEMS.STORE
+ZYO SRBIJA
+ZYOSRBIJA.COM
+CHARLEE SHOP
+CHARLEESHOP.COM
+VOLO TEX EGYPT
+VOLOTEXEGYPT.COM
+MLNWEAR
+MLNWEAR.COM
+DEBI MAS TIRAR FOTOS
+DEBIMASTIRARFOTOS.COM
+SOLVIX
+SOLVIXTR.CO
+MY BABY OUTFIT
+MYBABYOUTFIT.COM
+CÉLVÈNE
+CELVENE.FR
+CÉLVÈNE
+CELVENE.FR
+ALDJANNAH MUSC
+ALDJANNAHMUSC.COM
+ENGA
+ENGA.JP
+AM SUBLIMATION GIFTS
+AMPRINTLAB.COM
+SHUKULAB | PREMIUM CAT TOYS & INTERACTIVE PET ACCESSORIES
+SHUKULAB.COM
+ROBOT TONDEUSE
+TONDEUSEAUTO.COM
+DISTRIBUIDORA LIDIA
+DISTRIBUIDORALIDIA.COM
+VYREN
+BRANDSVYREN.COM
+PICASOUL WEAR
+PICASOULWEAR.COM
+PAWMEOWSTYLE
+PAWMEOWSTYLE.COM
+BILAL COLLECTIONS STORE
+BILALCOLLECTIONS.COM
+ROSELLE
+ROSELLES.SE
+STERNSAPHIR
+STERNSAPHIR.STORE
+VERINOR
+VERINORWELLNESS.COM
+CELORIVA
+CELORIVA.COM
+OSPERE
+OSPERE.COM
+KEYBOUND.STUDIO
+KEYBOUND.STUDIO
+OUR CULT APPAREL
+OURCULTAPPAREL.COM
+KYMCO ACCESSORIES
+KYMCO-ACCESSORIES.COM
+BRANDSUPPLYPRO
+BRANDSUPPLYPRO.COM
+BRANDSUPPLYPRO
+BRANDSUPPLYPRO.COM
+LILLY COLLECTIVE
+LILLYCOLLECTIVE.COM
+TMESHOP
+TMESHOP.STORE
+ARCNOVA
+ARCNOVAMAGYARORSZAG.COM
+TARZZI
+EMETITE.COM
+NORDDIESEL
+NORDDIESEL.CA
+NORDDIESEL
+NORDDIESEL.CA
+SKINCLEAR
+SKINCLEAR.NET
+SKINCLEAR
+SKINCLEAR.NET
+AXY-PETS
+AXY-PETS.COM
+PBLARTPRODUCTIONS
+PBLARTPRODUCTIONS.COM
+SHOPCALVIRO
+SHOPCALVIRO.COM
+FABREZZI STORE
+FABREZZIUK.COM
+AMBER STORE
+AMBERN.SHOP
+DIVINEBODYS™
+DIVINEBODYS.COM
+DIVINEBODYS™
+DIVINEBODYS.COM
+WADIRAK
+WADIRAK.COM
+MI TIENDA
+INAGOGT.COM
+ALREADY RUGGED
+ALREADYRUGGED.COM
+MY STORE
+PAWWASHLAB.COM
+EVANTO® | DESIGNERSKIE LAMPKI NOCNE I OŚWIETLENIE PREMIUM
+EVANTO.PL
+VEXORCHILE
+VEXORCHILE.STORE
+HONEY NATURALS
+HONEYNATURALSHAIRGROWTH.COM
+DRIFTCAM
+DRIFTCAM.NET
+RETRIEVERROUTES
+RETRIEVERROUTES.COM
+HOME LIVING
+VELMORASTORE.NET
+MY STORE
+JAZEELSHOP.COM
+GETVOID
+GETVOIDCO.COM
+MY STORE
+TODOPLUSH.COM
+AURA
+BIOGENIC.BIO
+NOOR GLOW
+NOORGLOWMART.ONLINE
+ROCKETRAM GROUP
+ROCKETRAMGROUP.COM
+VELVETHIA
+VELVETHIA.COM
+DECODED FOUR
+DECODEDFOUR.COM
+GASTON STUDIO
+GASTONSTUDIO.CO
+FAMILIATREA™
+FAMILIATREA.COM
+MI TIENDA
+BOOMMAYORISTA.SHOP
+MAGNAGRIP
+HYDROVARA.COM
+VITERA | PREMIUM SUPPLEMENTS FOR HEALTHY AGING, VITALITY & CIRCULATION
+GETVITERA.COM
+PRINTS & PIECES
+PRINTSANDPIECES.CA
+MY STORE
+JCOESSENTIALS.STORE
+VELMORA HOME
+VELMORAHOME.SHOP
+‎
+CRAFTEDBYAYLA.US
+ACTIVE WEAR BY SERENITY
+ACTIVEWEARBYSERENITY.STORE
+NATUROX CHILE | SUPLEMENTO NATURAL PARA HIPOTIROIDISMO Y TIROIDES
+NATUROXCHILE.COM
+SHOPNEXA.IN
+SHOPNEXAS.IN
+EATBYPHASE
+EATBYPHASE.COM
+LUXURYAURA.SHOP
+ZYNORIX.ONLINE
+NATURAL HANDMADE PRODUCTS TO REPLENISH YOUR SKIN & REFRESH YOUR HOME
+PAPERBARKLOVE.COM
+VONKREFT
+VONKREFT.COM
+MY STORE
+LYNX-EYE.COM
+MY STORE
+SALTANDSTONEOUTLET.COM
+HTSA
+HTSA.STORE
+SEND MY GIFT | CUSTOMIZED GIFT BOXES IN LAHORE & GUJRANWALA
+SENDMYGIFT.PK
+HARBOR PARFUMS
+HARBORPARFUMS.COM
+NGR GOLF PUTTERS
+NGRGOLF.COM
+SHIFANATURALS
+SHIFANATURALS-PK.STORE
+GLOWHIVE
+GLOWHIVESTORE.COM
+DULCE BEAUTY
+DULCEBEAUTYHAIRCO.COM
+OAXACAN CONCIERGE EXPERIENCES
+OAXACANCONCIERGEEXPERIENCES.COM
+INSIGNA PRO. SMART RING FOR SLEEP, HEALTH, FITNESS & STRESS.
+INSIGNA.SHOP
+HOUSE OF ALLURA
+HOUSEOFALLURA.COM
+RIMBUNKL
+RIMBUNKL.MY
+VELOURA
+VELOURACOM.ONLINE
+ELITFRAGRANCE
+ELITFRAGANCE.COM
+BEREDSKAPDIREKT
+BEREDSKAPDIREKT.SE
+AZZION
+AZZION.NET
+MY STORE
+ZENTIOPET.COM
+DOLLMEUP.BROWS
+DMUBEAUTYANDINK.CA
+OPTIWEAR OPTICAL AND WATCH
+OPTIWEAR.SHOP
+THECORELAB
+THECORELABSHOP.COM
+LENA TARR
+LENATARR.COM
+LENA TARR
+LENATARR.COM
+QUALITY STORE
+QUALITYSTORE.STORE
+QUALITY STORE
+QUALITYSTORE.STORE
+CAFEPRIME
+CAFEPRIME.FR
+CAFEPRIME
+CAFEPRIME.FR
+MI TIENDA
+TECNOVIDAPRO.COM
+AZALEA
+AZALEABOUTIQUE.FR
+LINKS
+Home
+Search
+About Us
+Contact
+CONTACT
+‪‪(509) 818-0429‬
+hello@merchantgenius.io
+
+522 W Riverside Ave Ste N
+Spokane, WA, 99201
+Shop Removal Request
+FOLLOW US`;
+      extractDomains();
+    }
+
+    function showToast(msg, isError) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.style.color = isError ? 'var(--danger)' : 'var(--success)';
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2400);
+    }
+  </script>
+</body>
+</html>
